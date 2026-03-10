@@ -20,5 +20,5 @@ jobs:
     - name: 'Deploy to GKE'
       run: |
         gcloud container clusters get-credentials demo-cluster --region us-central1
-        sed -i "s|IMAGE_NAME|us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-repo/python-app:${{ github.sha }}|g" k8s-deploy.yaml
+        sed -i "s|IMAGE_NAME|us-central1-docker.pkg.dev/internal-sandbox-446612/my-repo/python-app:${{ github.sha }}|g" k8s-deploy.yaml
         kubectl apply -f k8s-deploy.yaml
