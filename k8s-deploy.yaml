@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: python-app
+  name: python-app-deployment
 spec:
   replicas: 2
   selector:
@@ -14,6 +14,7 @@ spec:
     spec:
       containers:
       - name: python-app
+        # This IMAGE_NAME is a placeholder that our deploy.yml replaces automatically
         image: IMAGE_NAME
         ports:
         - containerPort: 8080
@@ -21,12 +22,12 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: python-service
+  name: python-app-service
 spec:
   type: LoadBalancer
   selector:
     app: python-app
   ports:
-  - protocol: TCP
-    port: 80
-    targetPort: 8080
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
