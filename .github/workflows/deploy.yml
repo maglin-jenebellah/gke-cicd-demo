@@ -35,9 +35,16 @@ jobs:
 
     - name: 'Deploy to GKE'
       run: |
-        gcloud container clusters get-credentials demo-cluster --region us-central1
-        # Replace IMAGE_NAME placeholder with the actual image we just pushed
+        # Explicitly set the project ID so it doesn't default to 'developer'
+        gcloud container clusters get-credentials demo-cluster \
+            --region us-central1 \
+            --project internal-sandbox-446612
+            
+        # Replace the placeholder in your manifest
         sed -i "s|IMAGE_NAME|us-central1-docker.pkg.dev/internal-sandbox-446612/my-repo/python-app:${{ github.sha }}|g" k8s-deploy.yaml
+        
+        # Apply the deployment
         kubectl apply -f k8s-deploy.yaml
-        # Wait for the rollout to finish so we know it's healthy
+        
+        # Check the status
         kubectl rollout status deployment/python-app-deployment
