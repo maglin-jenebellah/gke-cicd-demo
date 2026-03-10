@@ -24,6 +24,12 @@ jobs:
 
     - name: 'Set up Cloud SDK'
       uses: 'google-github-actions/setup-gcloud@v2'
+      with:
+        # This installs the missing plugin needed for 'kubectl' to work
+        install_components: 'gke-gcloud-auth-plugin'
+
+    - name: 'Docker Auth'
+      run: gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
 
     - name: 'Docker Auth'
       run: gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
