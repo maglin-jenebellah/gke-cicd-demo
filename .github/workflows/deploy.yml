@@ -11,14 +11,22 @@ jobs:
       uses: actions/checkout@v4
 
     - name: 'Docker Auth'
-      run: gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
+      run: |
+        # This tells Docker to use the VM's built-in Google credentials
+        gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
 
     - name: 'Build and Push'
       run: |
+        # Build the image using your project ID and the 'my-repo' we created
         docker build -t us-central1-docker.pkg.dev/internal-sandbox-446612/my-repo/python-app:${{ github.sha }} .
+        # Push it to the Artifact Registry
         docker push us-central1-docker.pkg.dev/internal-sandbox-446612/my-repo/python-app:${{ github.sha }}
+
     - name: 'Deploy to GKE'
       run: |
+        # Connect to your specific cluster
         gcloud container clusters get-credentials demo-cluster --region us-central1
+        # Replace the placeholder in your k8s file with the brand new image name
         sed -i "s|IMAGE_NAME|us-central1-docker.pkg.dev/internal-sandbox-446612/my-repo/python-app:${{ github.sha }}|g" k8s-deploy.yaml
+        # Tell Kubernetes to update the app
         kubectl apply -f k8s-deploy.yaml
