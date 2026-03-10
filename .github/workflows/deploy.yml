@@ -1,0 +1,40 @@
+name: Build and Deploy to GKE
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - id: 'auth'
+      name: 'Authenticate to Google Cloud'
+      uses: 'google-github-actions/auth@v2'
+      with:
+        # Use the string you got from the "final-provider" describe command
+        workload_identity_provider: 'projects/196053730058/locations/global/workloadIdentityPools/final-pool/providers/final-provider'
+        service_account: 'github-actions-sa@internal-sandbox-446612.iam.gserviceaccount.com'
+
+    - name: 'Set up Cloud SDK'
+      uses: 'google-github-actions/setup-gcloud@v2'
+
+    - name: 'Docker Auth'
+      run: gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
+
+    - name: 'Build and Push'
+      run: |
+        docker build -t us-central1-docker.pkg.dev/internal-sandbox-446612/my-repo/python-app:${{ github.sha }} .
+        docker push us-central1-docker.pkg.dev/internal-sandbox-446612/my-repo/python-app:${{ github.sha }}
+
+    - name: 'Deploy to GKE'
+      run: |
+        gcloud container clusters get-credentials demo-cluster --region us-central1
+        sed -i "s|IMAGE_NAME|us-central1-docker.pkg.dev/internal-sandbox-446612/my-repo/python-app:${{ github.sha }}|g" k8s-deploy.yaml
+        kubectl apply -f k8s-deploy.yaml
