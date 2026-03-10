@@ -4,8 +4,8 @@ on:
     branches: [ main ]
 
 permissions:
-  id-token: write # Required for OIDC
-  contents: read  # Required for checkout
+  id-token: write # Required for OIDC handshake
+  contents: read  # Required to checkout repository
 
 jobs:
   deploy:
@@ -18,18 +18,15 @@ jobs:
       id: 'auth'
       uses: 'google-github-actions/auth@v2'
       with:
-        # Note: Using your Project Number 196053730058 and github-pool-v2
+        # Using the v2 pool we just created in Cloud Shell
         workload_identity_provider: 'projects/196053730058/locations/global/workloadIdentityPools/github-pool-v2/providers/github-provider'
         service_account: '196053730058-compute@developer.gserviceaccount.com'
 
     - name: 'Set up Cloud SDK'
       uses: 'google-github-actions/setup-gcloud@v2'
       with:
-        # This installs the missing plugin needed for 'kubectl' to work
+        # CRITICAL: This installs the plugin required for GKE authentication
         install_components: 'gke-gcloud-auth-plugin'
-
-    - name: 'Docker Auth'
-      run: gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
 
     - name: 'Docker Auth'
       run: gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
@@ -40,17 +37,20 @@ jobs:
         docker push us-central1-docker.pkg.dev/internal-sandbox-446612/my-repo/python-app:${{ github.sha }}
 
     - name: 'Deploy to GKE'
+      env:
+        # Force kubectl to use the new authentication plugin
+        USE_GKE_GCLOUD_AUTH_PLUGIN: 'True'
       run: |
-        # Explicitly set the project ID so it doesn't default to 'developer'
+        # Explicitly set the project to internal-sandbox-446612
         gcloud container clusters get-credentials demo-cluster \
             --region us-central1 \
             --project internal-sandbox-446612
             
-        # Replace the placeholder in your manifest
+        # Update the deployment manifest with the new image tag
         sed -i "s|IMAGE_NAME|us-central1-docker.pkg.dev/internal-sandbox-446612/my-repo/python-app:${{ github.sha }}|g" k8s-deploy.yaml
         
-        # Apply the deployment
+        # Apply changes to Kubernetes
         kubectl apply -f k8s-deploy.yaml
         
-        # Check the status
+        # Final verification: wait for the pods to be healthy
         kubectl rollout status deployment/python-app-deployment
